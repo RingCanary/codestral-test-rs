@@ -1,6 +1,12 @@
 # codestral-test-rs
 
-A Rust application to interact with Codestral API for code completion and Mistral API for chat interactions.
+A Rust application to interact with Codestral API for code completion and Mistral API for chat interactions, with a modular and configurable design.
+
+## Features
+- Modular API clients for Codestral (code completion) and Mistral (chat)
+- Configuration system with TOML file support
+- Command-line interface for code completion, chat, and configuration management
+- Detailed logging and output generation
 
 ## Setup Instructions
 1. Clone the repository:
@@ -8,6 +14,7 @@ A Rust application to interact with Codestral API for code completion and Mistra
    git clone <repository-url>
    cd codestral-test-rs
    ```
+
 2. Set the environment variables for the API keys:
    ```bash
    # For code completion functionality
@@ -16,7 +23,14 @@ A Rust application to interact with Codestral API for code completion and Mistra
    # For chat functionality
    export MISTRAL_API_KEY=<your-mistral-api-key>
    ```
-3. Run the application:
+
+3. Generate a default configuration file (optional):
+   ```bash
+   cargo run config generate [config_path]
+   ```
+   If no path is provided, it will create `config.toml` in the current directory.
+
+4. Run the application:
    
    For code completion:
    ```bash
@@ -28,6 +42,42 @@ A Rust application to interact with Codestral API for code completion and Mistra
    cargo run chat "<message>" [max_tokens]
    ```
    Note: `max_tokens` is optional for chat mode.
+   
+   To view or generate configuration:
+   ```bash
+   # Generate default configuration
+   cargo run config generate [path]
+   
+   # View configuration from file
+   cargo run config <config_path>
+   ```
+
+## Configuration
+The application uses a configuration file (`config.toml` by default) to manage settings. Here's an example configuration:
+
+```toml
+# Model settings
+code_model = "codestral-latest"
+chat_model = "mistral-large-latest"
+
+# API URLs
+code_api_url = "https://codestral.mistral.ai/v1/fim/completions"
+chat_api_url = "https://api.mistral.ai/v1/chat/completions"
+
+# Environment variables for API keys
+code_api_key_env = "CODESTRAL_API_KEY"
+chat_api_key_env = "MISTRAL_API_KEY"
+
+# Temperature settings (0.0 - 1.0)
+temperature_code = 0.0  # Lower temperature for more deterministic code generation
+temperature_chat = 0.7  # Higher temperature for more creative chat responses
+
+# File paths
+log_file = "generations.log"
+output_file = "generations.txt"
+```
+
+You can create or modify this file manually or use the `config generate` command.
 
 ## Logging
 To enable logging and view `info!` level logs, set the `RUST_LOG` environment variable:
@@ -40,30 +90,40 @@ or for chat:
 RUST_LOG=info cargo run chat "<message>" [max_tokens]
 ```
 
-Logs are written to `generations.log` and include the following fields:
+Logs are written to the file specified in your configuration (default: `generations.log`) and include the following fields:
 - **Type**: The type of request (code_completion or chat).
 - **ID**: The unique identifier for the API response.
 - **Model**: The model used for the completion or chat.
 - **Object**: The type of API response.
 - **Finish Reason**: The reason the completion stopped.
-- **Tool Calls**: The number of tool calls in the response (code completion only).
 - **Created**: The timestamp of the response creation.
 - **Completion Tokens**: The number of tokens used for the completion.
 - **Total Tokens**: The total number of tokens used.
 
 ## Output Files
-- **generations.txt**: Contains the generated content from the API responses, separated by `---`.
-- **generations.log**: Contains detailed logs of each API response with timestamps.
+- **generations.txt** (default): Contains the generated content from the API responses, separated by `---`.
+- **generations.log** (default): Contains detailed logs of each API response with timestamps.
 
-## API Endpoints
-- **Code Completion**: Uses the Codestral API at `https://codestral.mistral.ai/v1/fim/completions`
-- **Chat**: Uses the Mistral API at `https://api.mistral.ai/v1/chat/completions`
+These file paths can be customized in the configuration file.
+
+## Project Structure
+- **src/main.rs**: Main entry point and command-line argument handling
+- **src/models.rs**: Data structures for API requests and responses
+- **src/config.rs**: Configuration management
+- **src/logging.rs**: Logging and output generation
+- **src/cli.rs**: Command-line interface functionality
+- **src/api/**: API client modules
+  - **mod.rs**: Module definitions and exports
+  - **common.rs**: Common API functionality and traits
+  - **mistral.rs**: Mistral API client for chat completions
+  - **codestral.rs**: Codestral API client for code completions
 
 ## Dependencies
-- `reqwest`
-- `serde`
-- `tokio`
-- `serde_json`
-- `log`
-- `env_logger`
-- `chrono`
+- `reqwest`: HTTP client for API requests
+- `serde`, `serde_json`: Serialization/deserialization
+- `tokio`: Async runtime
+- `log`, `env_logger`: Logging
+- `chrono`: Date/time functionality
+- `toml`: Configuration file parsing
+- `shellexpand`: Path expansion
+- `async-trait`: Async traits for API clients
