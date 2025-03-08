@@ -11,7 +11,7 @@ A Rust application to interact with Codestral API for code completion and Mistra
 ## Setup Instructions
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone [codestral-test-rs](https://github.com/RingCanary/codestral-test-rs.git)
    cd codestral-test-rs
    ```
 

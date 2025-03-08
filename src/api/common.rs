@@ -8,7 +8,9 @@ use async_trait::async_trait;
 #[async_trait]
 pub trait ApiClient {
     async fn send_request(&self, request_body: Value) -> Result<Value, Box<dyn Error>>;
+    #[allow(dead_code)]
     fn get_model(&self) -> &str;
+    #[allow(dead_code)]
     fn get_temperature(&self) -> f64;
 }
 

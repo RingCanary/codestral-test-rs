@@ -23,11 +23,6 @@ pub struct ChatCompletionRequest {
     pub temperature: f64,
 }
 
-pub enum ApiMode {
-    CodeCompletion,
-    Chat,
-}
-
 pub struct ApiResponse {
     pub id: String,
     pub model: String,
