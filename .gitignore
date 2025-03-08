@@ -23,3 +23,7 @@ Cargo.lock
 # Added by cargo
 
 /target
+
+# Log files
+*.log
+generations.txt
