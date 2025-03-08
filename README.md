@@ -17,8 +17,16 @@ A simple Rust application to experiment with the Codestral API.
    cargo run
    ```
 
+## Logging
+To enable logging and view `info!` level logs, set the `RUST_LOG` environment variable:
+```bash
+RUST_LOG=info cargo run
+```
+
 ## Dependencies
 - `reqwest`
 - `serde`
 - `tokio`
 - `serde_json`
+- `log`
+- `env_logger`
