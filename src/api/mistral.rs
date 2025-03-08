@@ -1,5 +1,6 @@
 use crate::Config;
 use crate::api::common::{ApiClient, get_api_key, make_api_request};
+use crate::api::progress::with_progress;
 use crate::models::{ChatMessage, ChatCompletionRequest};
 use crate::error::Result;
 use async_trait::async_trait;
@@ -46,7 +47,13 @@ impl MistralClient {
         };
         
         let request_json = json!(request);
-        self.send_request(request_json).await
+        
+        // Use progress tracking for the API request
+        with_progress(
+            &format!("Generating chat response with model '{}'...", self.model),
+            "Chat response received!",
+            self.send_request(request_json)
+        ).await
     }
 }
 
@@ -54,13 +61,5 @@ impl MistralClient {
 impl ApiClient for MistralClient {
     async fn send_request(&self, request_body: Value) -> Result<Value> {
         make_api_request(&self.client, &self.api_url, &self.api_key, request_body).await
-    }
-    
-    fn get_model(&self) -> &str {
-        &self.model
-    }
-    
-    fn get_temperature(&self) -> f64 {
-        self.temperature
     }
 }

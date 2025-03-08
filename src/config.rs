@@ -31,7 +31,7 @@ fn default_chat_api_key_env() -> String {
 }
 
 fn default_code_api_url() -> String {
-    "https://api.anthropic.com/v1/fim/completions".to_string()
+    "https://codestral.mistral.ai/v1/fim/completions".to_string()
 }
 
 fn default_chat_api_url() -> String {

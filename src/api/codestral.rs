@@ -1,5 +1,6 @@
 use crate::Config;
 use crate::api::common::{ApiClient, get_api_key, make_api_request};
+use crate::api::progress::with_progress;
 use crate::models::CompletionRequest;
 use crate::error::Result;
 use async_trait::async_trait;
@@ -40,7 +41,13 @@ impl CodestralClient {
         };
         
         let request_json = json!(request);
-        self.send_request(request_json).await
+        
+        // Use progress tracking for the API request
+        with_progress(
+            &format!("Generating code with model '{}'...", self.model),
+            "Code completion received!",
+            self.send_request(request_json)
+        ).await
     }
 }
 
@@ -48,13 +55,5 @@ impl CodestralClient {
 impl ApiClient for CodestralClient {
     async fn send_request(&self, request_body: Value) -> Result<Value> {
         make_api_request(&self.client, &self.api_url, &self.api_key, request_body).await
-    }
-    
-    fn get_model(&self) -> &str {
-        &self.model
-    }
-    
-    fn get_temperature(&self) -> f64 {
-        self.temperature
     }
 }

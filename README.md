@@ -5,8 +5,10 @@ A Rust application to interact with Codestral API for code completion and Mistra
 ## Features
 - Modular API clients for Codestral (code completion) and Mistral (chat)
 - Configuration system with TOML file support
-- Command-line interface for code completion, chat, and configuration management
+- Robust command-line interface with subcommands using clap
+- Visual progress indicators for API requests
 - Detailed logging and output generation
+- Comprehensive error handling
 
 ## Setup Instructions
 1. Clone the repository:
@@ -26,7 +28,7 @@ A Rust application to interact with Codestral API for code completion and Mistra
 
 3. Generate a default configuration file (optional):
    ```bash
-   cargo run config generate [config_path]
+   cargo run -- config generate [config_path]
    ```
    If no path is provided, it will create `config.toml` in the current directory.
 
@@ -34,22 +36,33 @@ A Rust application to interact with Codestral API for code completion and Mistra
    
    For code completion:
    ```bash
-   cargo run code "<prompt>" "<suffix>" <max_tokens>
+   cargo run -- code-completion "<prompt>" "<suffix>" --max-tokens <number>
    ```
    
    For chat interactions:
    ```bash
-   cargo run chat "<message>" <max_tokens>
+   cargo run -- chat "<message>" --max-tokens <number>
    ```
-   Note: `max_tokens` is optional for chat mode.
+   Note: `--max-tokens` is optional for both commands.
    
-   To view or generate configuration:
+   To manage configuration:
    ```bash
    # Generate default configuration
-   cargo run config generate [path]
+   cargo run -- config generate [path]
    
    # View configuration from file
-   cargo run config <config_path>
+   cargo run -- config view [path]
+   
+   # Load configuration from custom path
+   cargo run -- config load <path>
+   ```
+
+   You can also get help on any command:
+   ```bash
+   cargo run -- --help
+   cargo run -- code-completion --help
+   cargo run -- chat --help
+   cargo run -- config --help
    ```
 
 ## Configuration
@@ -80,25 +93,25 @@ output_file = "generations.txt"
 You can create or modify this file manually or use the `config generate` command.
 
 ## Logging
-To enable logging and view `info!` level logs, set the `RUST_LOG` environment variable:
+To enable logging, you can use the debug flag with different verbosity levels:
 ```bash
-RUST_LOG=info cargo run code "<prompt>" "<suffix>" <max_tokens>
+# Normal operation (warnings only)
+cargo run -- code-completion "<prompt>" "<suffix>"
+
+# Info level logs
+cargo run -- -d code-completion "<prompt>" "<suffix>"
+
+# Debug level logs
+cargo run -- -dd code-completion "<prompt>" "<suffix>"
+
+# Trace level logs
+cargo run -- -ddd code-completion "<prompt>" "<suffix>"
 ```
 
-or for chat:
+You can also set a custom configuration file:
 ```bash
-RUST_LOG=info cargo run chat "<message>" [max_tokens]
+cargo run -- --config /path/to/config.toml code-completion "<prompt>" "<suffix>"
 ```
-
-Logs are written to the file specified in your configuration (default: `generations.log`) and include the following fields:
-- **Type**: The type of request (code_completion or chat).
-- **ID**: The unique identifier for the API response.
-- **Model**: The model used for the completion or chat.
-- **Object**: The type of API response.
-- **Finish Reason**: The reason the completion stopped.
-- **Created**: The timestamp of the response creation.
-- **Completion Tokens**: The number of tokens used for the completion.
-- **Total Tokens**: The total number of tokens used.
 
 ## Output Files
 - **generations.txt** (default): Contains the generated content from the API responses, separated by `---`.
@@ -111,12 +124,15 @@ These file paths can be customized in the configuration file.
 - **src/models.rs**: Data structures for API requests and responses
 - **src/config.rs**: Configuration management
 - **src/logging.rs**: Logging and output generation
-- **src/cli.rs**: Command-line interface functionality
+- **src/cli/**: Command-line interface functionality
+  - **mod.rs**: CLI command handlers
+  - **commands.rs**: CLI command definitions using clap
 - **src/api/**: API client modules
   - **mod.rs**: Module definitions and exports
   - **common.rs**: Common API functionality and traits
   - **mistral.rs**: Mistral API client for chat completions
   - **codestral.rs**: Codestral API client for code completions
+  - **progress.rs**: Progress tracking for API requests
 
 ## Dependencies
 - `reqwest`: HTTP client for API requests
@@ -127,3 +143,6 @@ These file paths can be customized in the configuration file.
 - `toml`: Configuration file parsing
 - `shellexpand`: Path expansion
 - `async-trait`: Async traits for API clients
+- `clap`: Command-line argument parsing
+- `indicatif`: Progress indicators and spinners
+- `thiserror`: Error handling

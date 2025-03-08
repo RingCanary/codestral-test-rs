@@ -115,6 +115,4 @@ pub fn extract_response_fields(response: &Value) -> crate::models::ApiResponse {
 #[async_trait]
 pub trait ApiClient {
     async fn send_request(&self, request_body: Value) -> Result<Value>;
-    fn get_model(&self) -> &str;
-    fn get_temperature(&self) -> f64;
 }
