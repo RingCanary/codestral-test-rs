@@ -11,7 +11,7 @@ A Rust application to interact with Codestral API for code completion and Mistra
 ## Setup Instructions
 1. Clone the repository:
    ```bash
-   git clone [codestral-test-rs](https://github.com/RingCanary/codestral-test-rs.git)
+   git clone https://github.com/RingCanary/codestral-test-rs.git
    cd codestral-test-rs
    ```
 
@@ -39,7 +39,7 @@ A Rust application to interact with Codestral API for code completion and Mistra
    
    For chat interactions:
    ```bash
-   cargo run chat "<message>" [max_tokens]
+   cargo run chat "<message>" <max_tokens>
    ```
    Note: `max_tokens` is optional for chat mode.
    

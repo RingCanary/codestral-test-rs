@@ -1,11 +1,4 @@
-mod models;
-mod api;
-mod logging;
-mod cli;
-mod config;
-
-use cli::{handle_code_completion, handle_chat};
-use config::Config;
+use codestral_test_rs::{handle_code_completion, handle_chat, Config};
 
 use std::error::Error;
 use std::env;

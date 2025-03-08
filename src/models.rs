@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct CompletionRequest {
     pub model: String,
     pub prompt: String,
@@ -9,13 +9,13 @@ pub struct CompletionRequest {
     pub temperature: f64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ChatMessage {
     pub role: String,
     pub content: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ChatCompletionRequest {
     pub model: String,
     pub messages: Vec<ChatMessage>,
@@ -23,6 +23,7 @@ pub struct ChatCompletionRequest {
     pub temperature: f64,
 }
 
+#[derive(Clone)]
 pub struct ApiResponse {
     pub id: String,
     pub model: String,
