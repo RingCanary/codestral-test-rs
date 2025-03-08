@@ -10,7 +10,7 @@ A simple Rust application to experiment with the Codestral API.
    ```
 2. Set the environment variable for the API key:
    ```bash
-   export CODESRAL_API_KEY=<your-api-key>
+   export CODESTRAL_API_KEY=<your-api-key>
    ```
 3. Run the application:
    ```bash
