@@ -1,21 +1,12 @@
-# Codestral CLI Configuration
-
-# Model settings
 code_model = "codestral-latest"
 chat_model = "mistral-large-latest"
-
-# API URLs
-code_api_url = "https://codestral.mistral.ai/v1/fim/completions"
-chat_api_url = "https://api.mistral.ai/v1/chat/completions"
-
-# Environment variables for API keys
+code_temperature = 0.2
+chat_temperature = 0.7
 code_api_key_env = "CODESTRAL_API_KEY"
 chat_api_key_env = "MISTRAL_API_KEY"
-
-# Temperature settings (0.0 - 1.0)
-temperature_code = 0.0  # Lower temperature for more deterministic code generation
-temperature_chat = 0.7  # Higher temperature for more creative chat responses
-
-# File paths
-log_file = "generations.log"
-output_file = "generations.txt"
+code_api_url = "https://api.anthropic.com/v1/fim/completions"
+chat_api_url = "https://api.mistral.ai/v1/chat/completions"
+max_tokens_code = 512
+max_tokens_chat = 2048
+log_directory = "logs"
+config_path = "config.toml"

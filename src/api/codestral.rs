@@ -1,62 +1,60 @@
+use crate::Config;
 use crate::api::common::{ApiClient, get_api_key, make_api_request};
-use crate::config::Config;
 use crate::models::CompletionRequest;
+use crate::error::Result;
 use async_trait::async_trait;
 use reqwest::Client;
-use serde_json::{Value, json};
-use std::error::Error;
+use serde_json::{json, Value};
 use log::debug;
 
 pub struct CodestralClient {
-    client: Client,
+    model: String,
+    temperature: f64,
+    api_url: String,
     api_key: String,
-    config: Config,
+    client: Client,
 }
 
 impl CodestralClient {
-    pub fn new(config: Config) -> Result<Self, Box<dyn Error>> {
-        let api_key = get_api_key(&config.code_api_key_env)?;
+    pub fn new(config: Config) -> Result<Self> {
+        let api_key = get_api_key("CODESTRAL_API_KEY")?;
         
         Ok(Self {
-            client: Client::new(),
+            model: config.code_model.clone(),
+            temperature: config.code_temperature,
+            api_url: config.code_api_url.clone(),
             api_key,
-            config,
+            client: Client::new(),
         })
     }
     
-    pub async fn code_completion(&self, prompt: &str, suffix: &str, max_tokens: u32) -> Result<Value, Box<dyn Error>> {
+    pub async fn code_completion(&self, prompt: &str, suffix: &str, max_tokens: u32) -> Result<Value> {
         debug!("Sending request to Codestral API for code completion");
         
-        let completion_request = CompletionRequest {
-            model: self.config.code_model.clone(),
+        let request = CompletionRequest {
+            model: self.model.clone(),
             prompt: prompt.to_string(),
             suffix: suffix.to_string(),
             max_tokens,
-            temperature: self.config.temperature_code,
+            temperature: self.temperature,
         };
         
-        let request_body = json!(completion_request);
-        
-        self.send_request(request_body).await
+        let request_json = json!(request);
+        self.send_request(request_json).await
     }
 }
 
 #[async_trait]
 impl ApiClient for CodestralClient {
-    async fn send_request(&self, request_body: Value) -> Result<Value, Box<dyn Error>> {
-        make_api_request(
-            &self.client, 
-            &self.config.code_api_url, 
-            &self.api_key, 
-            request_body
-        ).await
+    async fn send_request(&self, request_body: Value) -> Result<Value> {
+        make_api_request(&self.client, &self.api_url, &self.api_key, request_body).await
     }
     
     fn get_model(&self) -> &str {
-        &self.config.code_model
+        &self.model
     }
     
     fn get_temperature(&self) -> f64 {
-        self.config.temperature_code
+        self.temperature
     }
 }

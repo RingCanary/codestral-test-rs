@@ -1,110 +1,120 @@
-use reqwest::Client;
+use crate::error::{AppError, Result, ErrorExt};
 use serde_json::Value;
-use std::error::Error;
-use log::{error};
-use crate::models::ApiResponse;
+use reqwest::{Client, header};
+use std::env;
 use async_trait::async_trait;
 
-#[async_trait]
-pub trait ApiClient {
-    async fn send_request(&self, request_body: Value) -> Result<Value, Box<dyn Error>>;
-    #[allow(dead_code)]
-    fn get_model(&self) -> &str;
-    #[allow(dead_code)]
-    fn get_temperature(&self) -> f64;
+/// Get the API key from an environment variable
+pub fn get_api_key(env_var_name: &str) -> Result<String> {
+    env::var(env_var_name)
+        .with_context(|| format!("Environment variable {} not found or not valid", env_var_name))
 }
 
-// Helper function to get API key from environment variables
-pub fn get_api_key(key_name: &str) -> Result<String, Box<dyn Error>> {
-    match std::env::var(key_name) {
-        Ok(key) => Ok(key),
-        Err(_) => {
-            let error_msg = format!("{} environment variable not set. Please set it before running the application.", key_name);
-            error!("{}", error_msg);
-            eprintln!("Error: {}", error_msg);
-            std::process::exit(1);
-        }
-    }
-}
-
-// Helper function to handle API requests with proper error handling
-pub async fn make_api_request(client: &Client, url: &str, api_key: &str, json_body: Value) -> Result<Value, Box<dyn Error>> {
-    match client
+/// Make an API request to the specified URL with the provided JSON body
+pub async fn make_api_request(
+    client: &Client, 
+    url: &str, 
+    api_key: &str, 
+    json_body: Value
+) -> Result<Value> {
+    // Create the request
+    let response = client
         .post(url)
-        .header("Content-Type", "application/json")
-        .header("Accept", "application/json")
+        .header(header::CONTENT_TYPE, "application/json")
         .header("Authorization", format!("Bearer {}", api_key))
         .json(&json_body)
         .send()
-        .await {
-            Ok(response) => {
-                if !response.status().is_success() {
-                    let status = response.status();
-                    let error_msg = format!("API request failed with status code: {}. Please check your API key and request parameters.", status);
-                    error!("{}", error_msg);
-                    return Err(error_msg.into());
-                }
-                
-                match response.json::<Value>().await {
-                    Ok(json) => Ok(json),
-                    Err(e) => {
-                        let error_msg = format!("Failed to parse API response: {}. Please ensure the API returned valid JSON.", e);
-                        error!("{}", error_msg);
-                        Err(error_msg.into())
-                    }
-                }
-            },
-            Err(e) => {
-                let error_msg = format!("Request to API failed: {}. Please check your network connection or the API endpoint.", e);
-                error!("{}", error_msg);
-                Err(error_msg.into())
-            }
-        }
+        .await
+        .with_context(|| format!("Failed to send request to {}", url))?;
+    
+    // Check if response is successful
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response.text().await
+            .unwrap_or_else(|_| String::from("Could not extract error message from response"));
+        
+        return Err(AppError::api(format!("API request failed with status {}: {}", status, error_text)));
+    }
+    
+    // Parse the response JSON
+    match response.json::<Value>().await {
+        Ok(json_response) => Ok(json_response),
+        Err(e) => Err(AppError::api(format!("Failed to parse API response: {}", e)))
+    }
 }
 
-// Helper function to extract common fields from API response
-pub fn extract_response_fields(response: &Value) -> ApiResponse {
-    let id = response.get("id").and_then(|id| id.as_str()).unwrap_or("N/A").to_string();
-    let model = response.get("model").and_then(|m| m.as_str()).unwrap_or("N/A").to_string();
-    let object = response.get("object").and_then(|o| o.as_str()).unwrap_or("N/A").to_string();
-    let created = response.get("created").and_then(|c| c.as_i64()).unwrap_or(0);
+// Extract common fields from API responses
+pub fn extract_response_fields(response: &Value) -> crate::models::ApiResponse {
+    let id = response.get("id").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let object = response.get("object").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+    let model = response.get("model").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
     
-    let first_choice = response
-        .get("choices")
-        .and_then(|choices| choices.get(0));
+    // Convert u64 to i64 for created timestamp
+    let created = response
+        .get("created")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as i64) // Safe conversion as long as value is within i64 range
+        .unwrap_or(0);
     
-    let finish_reason = first_choice
-        .and_then(|choice| choice.get("finish_reason"))
-        .and_then(|fr| fr.as_str())
-        .unwrap_or("N/A")
-        .to_string();
+    // Content extraction differs between API responses
+    let content = if let Some(choices) = response.get("choices") {
+        if let Some(first_choice) = choices.as_array().and_then(|a| a.first()) {
+            if let Some(text) = first_choice.get("text") {
+                text.as_str().map(|s| s.to_string())
+            } else if let Some(message) = first_choice.get("message") {
+                message.get("content").and_then(|c| c.as_str()).map(|s| s.to_string())
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
     
-    let content = first_choice
-        .and_then(|choice| choice.get("message"))
-        .and_then(|m| m.get("content"))
-        .and_then(|c| c.as_str())
-        .map(String::from);
+    // Finish reason extraction 
+    let finish_reason = if let Some(choices) = response.get("choices") {
+        if let Some(first_choice) = choices.as_array().and_then(|a| a.first()) {
+            first_choice.get("finish_reason").and_then(|v| v.as_str()).unwrap_or("unknown").to_string()
+        } else {
+            "unknown".to_string()
+        }
+    } else {
+        "unknown".to_string()
+    };
     
+    // Token counts (convert u32 to i64)
     let completion_tokens = response
         .get("usage")
-        .and_then(|u| u.get("completion_tokens"))
-        .and_then(|ct| ct.as_i64())
+        .and_then(|usage| usage.get("completion_tokens"))
+        .and_then(|v| v.as_u64())
+        .map(|v| v as i64) // Safe conversion from u64 to i64 for reasonable token counts
         .unwrap_or(0);
     
     let total_tokens = response
         .get("usage")
-        .and_then(|u| u.get("total_tokens"))
-        .and_then(|tt| tt.as_i64())
+        .and_then(|usage| usage.get("total_tokens"))
+        .and_then(|v| v.as_u64())
+        .map(|v| v as i64) // Safe conversion from u64 to i64 for reasonable token counts
         .unwrap_or(0);
-
-    ApiResponse {
+    
+    crate::models::ApiResponse {
         id,
-        model,
         object,
+        model,
         created,
-        finish_reason,
         content,
+        finish_reason,
         completion_tokens,
         total_tokens,
     }
+}
+
+// API client trait
+#[async_trait]
+pub trait ApiClient {
+    async fn send_request(&self, request_body: Value) -> Result<Value>;
+    fn get_model(&self) -> &str;
+    fn get_temperature(&self) -> f64;
 }

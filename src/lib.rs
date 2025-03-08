@@ -1,10 +1,11 @@
-pub mod models;
 pub mod api;
-pub mod logging;
 pub mod cli;
 pub mod config;
+pub mod error;
+pub mod logging;
+pub mod models;
 
-// Re-export the most commonly used items for convenience
+// Re-export commonly used items
 pub use config::Config;
-pub use cli::{handle_code_completion, handle_chat};
-pub use api::{MistralClient, CodestralClient};
+pub use error::{AppError, Result, ErrorExt};
+pub use models::{ApiResponse, ChatMessage, ChatCompletionRequest, CompletionRequest};

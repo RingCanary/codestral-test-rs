@@ -25,5 +25,4 @@ Cargo.lock
 /target
 
 # Log files
-*.log
-generations.txt
+logs/

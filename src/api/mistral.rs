@@ -1,66 +1,66 @@
+use crate::Config;
 use crate::api::common::{ApiClient, get_api_key, make_api_request};
-use crate::config::Config;
 use crate::models::{ChatMessage, ChatCompletionRequest};
+use crate::error::Result;
 use async_trait::async_trait;
 use reqwest::Client;
-use serde_json::{Value, json};
-use std::error::Error;
+use serde_json::{json, Value};
 use log::debug;
 
 pub struct MistralClient {
-    client: Client,
+    model: String,
+    temperature: f64,
+    api_url: String,
     api_key: String,
-    config: Config,
+    client: Client,
 }
 
 impl MistralClient {
-    pub fn new(config: Config) -> Result<Self, Box<dyn Error>> {
-        let api_key = get_api_key(&config.chat_api_key_env)?;
+    pub fn new(config: Config) -> Result<Self> {
+        let api_key = get_api_key("MISTRAL_API_KEY")?;
         
         Ok(Self {
-            client: Client::new(),
+            model: config.chat_model.clone(),
+            temperature: config.chat_temperature,
+            api_url: config.chat_api_url.clone(),
             api_key,
-            config,
+            client: Client::new(),
         })
     }
     
-    pub async fn chat(&self, message: &str, max_tokens: Option<u32>) -> Result<Value, Box<dyn Error>> {
+    pub async fn chat(&self, message: &str, max_tokens: Option<u32>) -> Result<Value> {
         debug!("Sending request to Mistral API for chat completion");
         
-        let chat_request = ChatCompletionRequest {
-            model: self.config.chat_model.clone(),
-            messages: vec![
-                ChatMessage {
-                    role: "user".to_string(),
-                    content: message.to_string(),
-                }
-            ],
+        let messages = vec![
+            ChatMessage {
+                role: "user".to_string(),
+                content: message.to_string(),
+            }
+        ];
+        
+        let request = ChatCompletionRequest {
+            model: self.model.clone(),
+            messages,
             max_tokens,
-            temperature: self.config.temperature_chat,
+            temperature: self.temperature,
         };
         
-        let request_body = json!(chat_request);
-        
-        self.send_request(request_body).await
+        let request_json = json!(request);
+        self.send_request(request_json).await
     }
 }
 
 #[async_trait]
 impl ApiClient for MistralClient {
-    async fn send_request(&self, request_body: Value) -> Result<Value, Box<dyn Error>> {
-        make_api_request(
-            &self.client, 
-            &self.config.chat_api_url, 
-            &self.api_key, 
-            request_body
-        ).await
+    async fn send_request(&self, request_body: Value) -> Result<Value> {
+        make_api_request(&self.client, &self.api_url, &self.api_key, request_body).await
     }
     
     fn get_model(&self) -> &str {
-        &self.config.chat_model
+        &self.model
     }
     
     fn get_temperature(&self) -> f64 {
-        self.config.temperature_chat
+        self.temperature
     }
 }
